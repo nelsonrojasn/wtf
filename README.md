@@ -13,6 +13,7 @@ Ejecuta tu entorno de desarrollo en segundos.
 ### Requisitos Previos
 - PHP 8.1 o superior (con las extensiones `pdo_sqlite` y `openssl` activas)
 - [Caddy](https://caddyserver.com/) con el plugin de FrankenPHP (opcional, pero recomendado para producción)
+- php-curl (opcional, sólo necesario si vas a usar la herramienta pinger)
 
 ### Servidor de Desarrollo Local (Tradicional)
 
@@ -75,7 +76,8 @@ El diseño del proyecto es modular y fácil de navegar:
 ├── core/                # El motor del framework (DB Singleton, Cookies encriptadas, etc.)
 │   ├── bootstrap.php    # Autocarga de clases, utilidades HTTP y helpers de renderizado
 │   ├── Db.php           # Envoltorio PDO para SQLite3 con optimizaciones agresivas
-│   └── EncryptedCookie.php # Gestor de cookies seguras y encriptadas (AES-256-GCM)
+│   ├── EncryptedCookie.php # Gestor de cookies seguras y encriptadas (AES-256-GCM)
+│   └── Response.php     # Clase que encapsula respuestas HTTP (cuerpo, cabeceras, estado)
 ├── modules/             # Lógica de negocio y vistas organizadas por módulos
 │   └── home/            # Módulo de la página de inicio
 │       ├── HomeHandler.php # Controlador del módulo
@@ -177,7 +179,7 @@ Ejemplo de `DashboardHandler.php`:
 <?php
 
 class DashboardHandler {
-    public function handle(array $request): void
+    public function handle(array $request): Response
     {
         // $request contiene: method, path, headers, query, body, params, start_time
         
@@ -186,7 +188,7 @@ class DashboardHandler {
             'usuario' => ['nombre' => 'Nelson']
         ];
         
-        view("dashboard/views/index", $data);
+        return view("dashboard/views/index", $data);
     }
 }
 ```
@@ -200,13 +202,11 @@ Ejemplo en [shared/filters/auth.php](./shared/filters/auth.php):
 ```php
 <?php
 
-function auth(array $request): bool {
+function auth(array $request): mixed {
     $session = EncryptedCookie::get('wtf_session');
     
     if (!$session) {
-        http_response_code(401);
-        json(['error' => 'No autorizado'], 401);
-        return false; // Interrumpe el flujo
+        return json(['error' => 'No autorizado'], 401); // Retorna una Response para abortar
     }
 
     return true; // Continúa al handler

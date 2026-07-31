@@ -1,0 +1,3 @@
+Method,Path,ExpectedStatus,ContainsText,Payload
+GET,/,200,Hola,
+GET,/non-existent-page,404,Not Found,

@@ -52,8 +52,12 @@ function handle_http_request($routes, $worker_start_time) {
 		        $filter_file = ROOT_PATH . "shared/filters/{$filter_name}.php";
 		        if (file_exists($filter_file)) {
 		            require_once $filter_file;
-		            // Si el filtro devuelve false o redirige, cortamos la ejecución
+		            // Si el filtro devuelve false, un Response o redirige, cortamos la ejecución
 		            $result = $filter_name($request);
+		            if ($result instanceof Response) {
+		                $result->send();
+		                return;
+		            }
 		            if ($result === false) {
 		                return;
 		            }
@@ -64,7 +68,13 @@ function handle_http_request($routes, $worker_start_time) {
         // Carga y ejecución del handler
         require_once ROOT_PATH . 'modules/' . $route['module'] . '/' . $route['starter'] . '.php';
         $handler = new $route['starter']();
-        $handler->handle($request);
+        $response = $handler->handle($request);
+
+        if ($response instanceof Response) {
+            $response->send();
+        } elseif (is_string($response)) {
+            echo $response;
+        }
     }
 
     // Cabecera de telemetría (se calcula para 200 y 404 por igual)

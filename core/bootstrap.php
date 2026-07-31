@@ -22,10 +22,10 @@ spl_autoload_register(
 
 
 // Redirigir al navegador
-function redirect_to(string $url)
+function redirect_to(string $url): Response
 {
     $base = defined('PUBLIC_PATH') ? PUBLIC_PATH : '/';
-    header('Location: ' . $base . ltrim($url, '/'), true, 302);
+    return new Response('', 302, ['Location' => $base . ltrim($url, '/')]);
 }
 
 function get_body_content(array $headers): mixed
@@ -98,39 +98,21 @@ function get_request_headers(): array
 /**
  * Envía una respuesta al navegador en formato JSON.
  */
-function json(mixed $data, int $status = 200, array $headers = []): void
+function json(mixed $data, int $status = 200, array $headers = []): Response
 {
-    // Establecemos el código de estado HTTP (ej. 200 OK, 404 Not Found)
-    http_response_code($status);
-    
-    // Indicamos al navegador que el contenido es JSON codificado en UTF-8
-    header('Content-Type: application/json; charset=utf-8');
-    
-    // Enviamos cabeceras adicionales si se solicitaron
-    foreach ($headers as $key => $value) {
-        header("$key: $value");
-    }
-    
-    // Opciones para codificar JSON de forma legible y segura:
-    // - JSON_UNESCAPED_UNICODE: Evita convertir letras con tildes o eñes en códigos extraños
-    // - JSON_UNESCAPED_SLASHES: Evita escapar las barras diagonales /
-    // - JSON_THROW_ON_ERROR: Lanza una excepción si hay un error al codificar
     $opciones = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR;
-    
-    echo json_encode($data, $opciones);
+    $content = json_encode($data, $opciones);
+    $headers['Content-Type'] = $headers['Content-Type'] ?? 'application/json; charset=utf-8';
+    return new Response($content, $status, $headers);
 }
 
 /**
  * Envía una respuesta HTML personalizada.
  */
-function html(string $html, int $status = 200, array $headers = []): void
+function html(string $html, int $status = 200, array $headers = []): Response
 {
-    http_response_code($status);
-    header('Content-Type: text/html; charset=utf-8');
-    foreach ($headers as $key => $value) {
-        header("$key: $value");
-    }
-    echo $html;
+    $headers['Content-Type'] = $headers['Content-Type'] ?? 'text/html; charset=utf-8';
+    return new Response($html, $status, $headers);
 }
 
 /**
@@ -150,22 +132,32 @@ function h(mixed $value): string
 /**
  * Renderiza una vista HTML cargando un archivo PHP de la carpeta 'views'.
  */
-function view(string $name, array $data = [], int $status = 200, array $headers = []): void
+function view(string $name, array $data = [], ?string $template = null, int $status = 200, array $headers = []): Response
 {
-    http_response_code($status);
-    header('Content-Type: text/html; charset=utf-8');
-    
-    foreach ($headers as $key => $value) {
-        header("$key: $value");
-    }
-
-    // Convierte las claves de un array en variables individuales para la vista.
-    // EXTR_SKIP evita que se sobrescriban variables existentes del sistema.
+    $template = $template ?? ($data['template'] ?? null);
     extract($data, EXTR_SKIP);
     
-    // Cargamos el archivo de la vista usando dirname(__DIR__) porque este archivo está en "core/"
     $view_file_path = ROOT_PATH . 'modules/' . $name . '.php';
+    
+    ob_start();
     require $view_file_path;
+    $yield = ob_get_clean();
+    
+    if ($template) {
+        $template_file_path = ROOT_PATH . 'shared/templates/' . $template . '.php';
+        ob_start();
+        if (file_exists($template_file_path)) {
+            require $template_file_path;
+        } else {
+            echo $yield;
+        }
+        $content = ob_get_clean();
+    } else {
+        $content = $yield;
+    }
+    
+    $headers['Content-Type'] = $headers['Content-Type'] ?? 'text/html; charset=utf-8';
+    return new Response($content, $status, $headers);
 }
 
 /**
