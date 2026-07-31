@@ -1,6 +1,7 @@
 <?php
 
-class EncryptedCookie {
+class EncryptedCookie
+{
     // Definir una clave secreta fuerte en config/settings.php
     private static string $secret_key = 'TU_CLAVE_SECRETA_HIPER_SEGURA_CAMBIAME';
     private static string $cipher = 'aes-256-gcm';
@@ -8,7 +9,8 @@ class EncryptedCookie {
     /**
      * Empaqueta, cifra y firma los datos para la cookie
      */
-    public static function set(string $name, array $data, int $ttl_seconds = 86400): void {
+    public static function set(string $name, array $data, int $ttl_seconds = 86400): void
+    {
         $data['expires_at'] = time() + $ttl_seconds;
         $json = json_encode($data);
 
@@ -18,7 +20,7 @@ class EncryptedCookie {
 
         // Cifrar datos usando AES-256-GCM
         $ciphertext = openssl_encrypt($json, self::$cipher, self::$secret_key, 0, $iv, $tag);
-        
+
         // Empaquetar payload en base64 (IV + TAG + CIPHERTEXT)
         $payload = base64_encode($iv . $tag . $ciphertext);
 
@@ -35,7 +37,8 @@ class EncryptedCookie {
     /**
      * Lee, valida y descifra la cookie. Retorna null si fue manipulada o expiró.
      */
-    public static function get(string $name): ?array {
+    public static function get(string $name): ?array
+    {
         if (!isset($_COOKIE[$name])) {
             return null;
         }
@@ -70,7 +73,8 @@ class EncryptedCookie {
     /**
      * Elimina la cookie
      */
-    public static function destroy(string $name): void {
+    public static function destroy(string $name): void
+    {
         setcookie($name, '', [
             'expires'  => time() - 3600,
             'path'     => '/',
