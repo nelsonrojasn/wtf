@@ -47,6 +47,10 @@ El framework incluye herramientas de terminal autoejecutables para mejorar el fl
   ```bash
   ./bin/pinger pruebas.csv http://localhost:8080
   ```
+* **Guardián (Linter y Análisis Estático)**: Valida la sintaxis de todos los archivos PHP, comprueba que los Handlers no emitan HTML directamente (forzando el uso de `view()`), y valida la adherencia estricta del patrón CQRS en los modelos (`shared/models/`).
+  ```bash
+  ./bin/guardian
+  ```
 
 ---
 
@@ -58,6 +62,8 @@ El diseño del proyecto es modular y fácil de navegar:
 ├── bin/                 # Herramientas de consola CLI
 │   ├── console          # Ejecutable para listar rutas
 │   ├── console.php      # Script principal de listado de rutas
+│   ├── guardian         # Ejecutable para análisis estático y linter
+│   ├── guardian.php     # Script principal del linter / CQRS
 │   ├── pinger           # Ejecutable para validar endpoints
 │   ├── pinger.php       # Script principal del verificador de URLs (pinger)
 │   ├── scaffold         # Ejecutable para andamiaje
