@@ -5,17 +5,19 @@ require_once __DIR__ . '/Db.php';
 require_once __DIR__ . '/EncryptedCookie.php';
 
 spl_autoload_register(
-    function($className) {
+    function ($className) {
         $file = $className . '.php';
         $findOn = [
-    		CORE_PATH, 
-           	ROOT_PATH . 'shared/filters/',
-           	ROOT_PATH . 'shared/models/'];
-        
-        foreach($findOn as $f) {
-        	if (file_exists($f. $file)) {
-		        require_once $f. $file;
-		    }
+            CORE_PATH,
+            CORE_PATH . 'interfaces/',
+            ROOT_PATH . 'shared/filters/',
+            ROOT_PATH . 'shared/models/'
+        ];
+
+        foreach ($findOn as $f) {
+            if (file_exists($f . $file)) {
+                require_once $f . $file;
+            }
         }
     }
 );
@@ -31,10 +33,10 @@ function redirect_to(string $url): Response
 function get_body_content(array $headers): mixed
 {
     $content_type = $headers['Content-Type'] ?? $headers['content-type'] ?? '';
-    
+
     if (str_contains($content_type, 'application/json')) {
         $content_length = (int)($headers['Content-Length'] ?? $headers['content-length'] ?? 0);
-        
+
         if ($content_length > 512 * 1024) {
             json(['error' => 'Payload demasiado grande'], 413);
             return null;
@@ -66,7 +68,7 @@ function get_request_headers(): array
             return $all_headers;
         }
     }
-    
+
     // Si no, las extraemos manualmente del array superglobal $_SERVER.
     $headers = [];
     foreach ($_SERVER as $name => $value) {
@@ -82,7 +84,7 @@ function get_request_headers(): array
             $palabras_capitalizadas = ucwords($minusculas);
             // 5. Cambiamos los espacios por guiones para el formato final: "User-Agent"
             $key = str_replace(' ', '-', $palabras_capitalizadas);
-            
+
             $headers[$key] = $value;
         }
         // Caso especial: Content-Type y Content-Length no siempre llevan el prefijo HTTP_
@@ -136,13 +138,13 @@ function view(string $name, array $data = [], ?string $template = null, int $sta
 {
     $template = $template ?? ($data['template'] ?? null);
     extract($data, EXTR_SKIP);
-    
+
     $view_file_path = ROOT_PATH . 'modules/' . $name . '.php';
-    
+
     ob_start();
     require $view_file_path;
     $yield = ob_get_clean();
-    
+
     if ($template) {
         $template_file_path = ROOT_PATH . 'shared/templates/' . $template . '.php';
         ob_start();
@@ -155,7 +157,7 @@ function view(string $name, array $data = [], ?string $template = null, int $sta
     } else {
         $content = $yield;
     }
-    
+
     $headers['Content-Type'] = $headers['Content-Type'] ?? 'text/html; charset=utf-8';
     return new Response($content, $status, $headers);
 }
@@ -172,7 +174,7 @@ function partial(string $name, array $data = []): void
     // Convierte las claves de un array en variables individuales para el parcial,
     // aislando su alcance de la vista principal.
     extract($data, EXTR_SKIP);
-    
+
     // Cargamos el archivo parcial usando dirname(__DIR__) porque este archivo está en "core/"
     $partial_file_path = ROOT_PATH . 'shared/partials/' . $name . '.php';
     require $partial_file_path;

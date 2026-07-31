@@ -71,11 +71,13 @@ El diseño del proyecto es modular y fácil de navegar:
 │   └── scaffold.php     # Script principal de andamiaje de módulos y vistas
 ├── config/              # Configuración global del sistema
 │   ├── database.php     # Configuración de base de datos
+│   ├── dependencies.php # Mapeo de dependencias para el Contenedor DI
 │   ├── routes.php       # Registro y definición de rutas URL
 │   └── settings.php     # Ajustes de PHP, zonas horarias y rutas base
 ├── core/                # El motor del framework (DB Singleton, Cookies encriptadas, etc.)
 │   ├── bootstrap.php    # Autocarga de clases, utilidades HTTP y helpers de renderizado
-│   ├── Db.php           # Envoltorio PDO para SQLite3 con optimizaciones agresivas
+│   ├── Container.php    # Contenedor de Inyección de Dependencias con Autowiring
+│   ├── Db.php           # Servicio PDO para SQLite3 con optimizaciones agresivas
 │   ├── EncryptedCookie.php # Gestor de cookies seguras y encriptadas (AES-256-GCM)
 │   └── Response.php     # Clase que encapsula respuestas HTTP (cuerpo, cabeceras, estado)
 ├── modules/             # Lógica de negocio y vistas organizadas por módulos
@@ -104,6 +106,7 @@ sequenceDiagram
     autonumber
     actor Cliente as Navegador / Cliente
     participant Index as public/index.php
+    participant Container as core/Container.php
     participant Routes as config/routes.php
     participant Filters as shared/filters/*
     participant Handler as modules/*/*Handler.php
@@ -124,11 +127,17 @@ sequenceDiagram
         end
     end
     
-    Index->>Handler: Instancia y ejecuta handle($request)
+    Index->>Container: get(Handler)
+    activate Container
+    Note over Container: Resuelve dependencias (Autowiring)
+    Container-->>Index: Instancia del Handler
+    deactivate Container
+    
+    Index->>Handler: ejecuta handle($request)
     activate Handler
     
     opt Operaciones de Base de Datos
-        Handler->>DB: Db::findAll() / Db::findFirst()
+        Handler->>DB: $this->db->findAll() / $this->db->findFirst()
         DB-->>Handler: Registros / Datos
     end
     
@@ -137,7 +146,7 @@ sequenceDiagram
     View-->>Handler: HTML compilado
     deactivate View
     
-    Handler-->>Index: Finaliza ejecución del Handler
+    Handler-->>Index: Finaliza ejecución del Handler (Response)
     deactivate Handler
     
     Index-->>Cliente: Envía respuesta al cliente + Cabecera X-Response-Time
@@ -213,26 +222,33 @@ function auth(array $request): mixed {
 }
 ```
 
-### 4. Consultas a la Base de Datos (`Db` Helper)
+### 4. Consultas a la Base de Datos (`Db` Service)
 
-La clase estática [core/Db.php](./core/Db.php) expone un envoltorio PDO optimizado para SQLite3.
+La clase [core/Db.php](./core/Db.php) se utiliza como un servicio instanciable registrado en el contenedor DI. Puedes inyectar `Db` en el constructor de tus controladores o modelos y usar sus métodos rápidos:
 
 ```php
+// Inyección de dependencia en el constructor de tu clase
+private Db $db;
+
+public function __construct(Db $db) {
+    $this->db = $db;
+}
+
 // 1. Obtener múltiples registros
-$usuarios = Db::findAll("SELECT * FROM users WHERE active = :active", ['active' => 1]);
+$usuarios = $this->db->findAll("SELECT * FROM users WHERE active = :active", ['active' => 1]);
 
 // 2. Obtener un único registro (retorna array asociativo o null)
-$usuario = Db::findFirst("SELECT * FROM users WHERE id = :id", ['id' => 12]);
+$usuario = $this->db->findFirst("SELECT * FROM users WHERE id = :id", ['id' => 12]);
 
 // 3. Insertar un registro (retorna el ID de la fila insertada)
-$nuevoId = Db::insert("users", [
+$nuevoId = $this->db->insert("users", [
     'name' => 'Nelson Rojas',
     'email' => 'nelson@example.com',
     'created_at' => date('Y-m-d H:i:s')
 ]);
 
 // 4. Actualizar registros (requiere condición WHERE para evitar updates masivos accidentales)
-$filasAfectadas = Db::update(
+$filasAfectadas = $this->db->update(
     "users",
     ['name' => 'Nelson R.'], // Datos a cambiar
     "WHERE id = :id",        // Condición
@@ -240,10 +256,45 @@ $filasAfectadas = Db::update(
 );
 
 // 5. Eliminar registros
-$filasEliminadas = Db::delete("users", "WHERE id = :id", ['id' => $nuevoId]);
+$filasEliminadas = $this->db->delete("users", "WHERE id = :id", ['id' => $nuevoId]);
 ```
 
-### 5. Cookies Encriptadas (Seguridad)
+### 5. Contenedor de Inyección de Dependencias (`Container`)
+
+WTF incluye un contenedor de inyección de dependencias (`Container`) ligero con soporte nativo de **Autowiring** (resolución automática usando reflexión).
+
+#### Registrar Dependencias de forma manual
+Define tus servicios compartidos y singletons en [config/dependencies.php](./config/dependencies.php):
+
+```php
+return function (Container $container) {
+    // Registrar Db como Singleton
+    $container->singleton(Db::class, function ($c) {
+        return new Db();
+    });
+};
+```
+
+#### Uso mediante Autowiring (Sin configuración)
+Cualquier clase instanciable (Handlers, Modelos, Servicios) que declares en los constructores de tus clases será resuelta automáticamente por el contenedor sin necesidad de registro explícito.
+
+```php
+class HomeHandler implements HandlerInterface {
+    private UserQuery $userQuery;
+
+    // El contenedor resuelve e inyecta UserQuery automáticamente
+    public function __construct(UserQuery $userQuery) {
+        $this->userQuery = $userQuery;
+    }
+
+    public function handle(array $request): Response {
+        $users = $this->userQuery->getActiveUsers();
+        return view("home/views/index", ['users' => $users]);
+    }
+}
+```
+
+### 6. Cookies Encriptadas (Seguridad)
 
 Para almacenar sesiones de usuario u otros datos sensibles del lado del cliente, se utiliza criptografía AES-256-GCM.
 

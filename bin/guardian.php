@@ -33,43 +33,53 @@ foreach ($php_files as $file) {
 echo "  Sintaxis: \033[32m$syntax_passed OK\033[0m, \033[31m$syntax_failed Errores\033[0m.\n\n";
 
 
-// --- Phase 2: Handler HTML check ---
-echo "\033[1;36m[Fase 2] Revisando Handlers (Direct HTML Emission)...\033[0m\n";
-$handler_passed = 0;
-$handler_failed = 0;
+// --- Phase 2: Handlers and Views Linter ---
+echo "\033[1;36m[Fase 2] Revisando Handlers y Vistas (HTML directo e instanciaciones)...\033[0m\n";
+$module_passed = 0;
+$module_failed = 0;
 
 $modules_dir = ROOT_PATH . 'modules';
-$handler_files = [];
+$module_files = [];
 if (is_dir($modules_dir)) {
-    $handler_files = get_php_files($modules_dir);
+    $module_files = get_php_files($modules_dir);
 }
 
-foreach ($handler_files as $file) {
+foreach ($module_files as $file) {
     $relative_path = str_replace(ROOT_PATH, '', $file);
+    $is_view = str_contains($relative_path, '/views/');
+    $content = file_get_contents($file);
     
-    // Ignorar las vistas dentro de los módulos
-    if (str_contains($relative_path, '/views/')) {
-        continue;
+    $file_issues = [];
+    
+    // 1. Los Handlers no pueden emitir HTML directo
+    if (!$is_view) {
+        $html_issues = check_html_in_handler($content);
+        if (!empty($html_issues)) {
+            $file_issues = array_merge($file_issues, $html_issues);
+        }
     }
     
-    $content = file_get_contents($file);
-    $html_issues = check_html_in_handler($content);
+    // 2. Ni Handlers ni Vistas pueden instanciar clases con 'new' manualmente
+    $instantiation_issues = check_manual_instantiation($content);
+    if (!empty($instantiation_issues)) {
+        $file_issues = array_merge($file_issues, $instantiation_issues);
+    }
     
-    if (!empty($html_issues)) {
-        $handler_failed++;
-        foreach ($html_issues as $issue) {
+    if (!empty($file_issues)) {
+        $module_failed++;
+        foreach ($file_issues as $issue) {
             $errors[] = [
-                'type' => 'HTML en Handler',
+                'type' => $is_view ? 'Instanciación en Vista' : 'Infracción de Handler',
                 'file' => $relative_path,
                 'message' => $issue
             ];
         }
-        echo "  \033[31m✕ $relative_path\033[0m (Contiene HTML directo)\n";
+        echo "  \033[31m✕ $relative_path\033[0m (Error de estructura o regla DI)\n";
     } else {
-        $handler_passed++;
+        $module_passed++;
     }
 }
-echo "  Handlers: \033[32m$handler_passed OK\033[0m, \033[31m$handler_failed Errores\033[0m.\n\n";
+echo "  Módulos (Handlers y Vistas): \033[32m$module_passed OK\033[0m, \033[31m$module_failed Errores\033[0m.\n\n";
 
 
 // --- Phase 3: Model CQRS enforcement ---
@@ -264,5 +274,44 @@ function check_cqrs_pattern(string $filename, string $content): array
         }
     }
     
+    return $issues;
+}
+
+/**
+ * Revisa que no se utilicen instanciaciones manuales usando 'new' (excepto excepciones/datetime/stdclass)
+ */
+function check_manual_instantiation(string $content): array
+{
+    $issues = [];
+    $tokens = token_get_all($content);
+    
+    for ($i = 0; $i < count($tokens); $i++) {
+        $token = $tokens[$i];
+        if (is_array($token) && $token[0] === T_NEW) {
+            $className = '';
+            for ($j = $i + 1; $j < count($tokens); $j++) {
+                $nextToken = $tokens[$j];
+                if (is_array($nextToken)) {
+                    if ($nextToken[0] === T_STRING) {
+                        $className = $nextToken[1];
+                        break;
+                    }
+                    if ($nextToken[0] !== T_WHITESPACE) {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+            
+            // Permitir excepciones, errores y objetos de utilidad nativos comunes
+            if (preg_match('/(Exception|Error)$/i', $className) || 
+                in_array(strtolower($className), ['datetime', 'datetimeimmutable', 'stdclass'])) {
+                continue;
+            }
+            
+            $issues[] = "Instanciación manual detectada con 'new " . ($className ?: '') . "'. Las dependencias deben inyectarse a través del Contenedor DI.";
+        }
+    }
     return $issues;
 }

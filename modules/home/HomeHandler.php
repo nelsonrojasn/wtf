@@ -1,11 +1,11 @@
 <?php
 
-class HomeHandler
+class HomeHandler implements HandlerInterface
 {
-	public function handle($request)
+	public function handle(array $request): Response
 	{
 		// Calculamos cuánto tiempo lleva procesando la petición
 		$time_sec = $_SERVER['REQUEST_TIME_FLOAT'] ? (microtime(true) - $_SERVER['REQUEST_TIME_FLOAT']) : 0;
-		return view("home/views/index", compact("time_sec"), "default");
+		return view("home/views/index", ["time_sec" => $time_sec], "default");
 	}
 }

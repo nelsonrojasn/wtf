@@ -24,6 +24,13 @@ function handle_http_request($routes, $worker_start_time) {
 
     ob_start();
 
+    // Inicializar Contenedor DI y cargar dependencias
+    $container = new Container();
+    $dependenciesResolver = require ROOT_PATH . 'config/dependencies.php';
+    if (is_callable($dependenciesResolver)) {
+        $dependenciesResolver($container);
+    }
+
     $uri_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
     $request_uri = $_SERVER['REQUEST_URI'] ?? '/';
@@ -67,7 +74,7 @@ function handle_http_request($routes, $worker_start_time) {
         
         // Carga y ejecución del handler
         require_once ROOT_PATH . 'modules/' . $route['module'] . '/' . $route['starter'] . '.php';
-        $handler = new $route['starter']();
+        $handler = $container->get($route['starter']);
         $response = $handler->handle($request);
 
         if ($response instanceof Response) {

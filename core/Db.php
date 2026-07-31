@@ -1,20 +1,21 @@
 <?php
+// core/Db.php
 
 class Db
 {
-    private static ?PDO $connection = null;
+    private ?PDO $connection = null;
 
     /**
-     * Obtiene o crea la conexión única a SQLite (Singleton en memoria)
+     * Obtiene o crea la conexión única a SQLite (Singleton de instancia)
      */
-    public static function connect(): PDO
+    public function connect(): PDO
     {
-        if (self::$connection !== null) {
-            return self::$connection;
+        if ($this->connection !== null) {
+            return $this->connection;
         }
 
         try {
-            self::$connection = new PDO(
+            $this->connection = new PDO(
                 DB_HOST,
                 DB_USER,
                 DB_PASS,
@@ -25,15 +26,15 @@ class Db
             );
 
             // Optimizaciones agresivas de rendimiento para SQLite3
-            self::$connection->exec('PRAGMA journal_mode = WAL');     // Write-Ahead Logging
-            self::$connection->exec('PRAGMA synchronous = NORMAL');   // Balance entre velocidad y seguridad
-            self::$connection->exec('PRAGMA cache_size = -64000');   // 64MB de caché en RAM
-            self::$connection->exec('PRAGMA temp_store = MEMORY');    // Tablas temporales en RAM
-            self::$connection->exec('PRAGMA mmap_size = 30000000');   // Memory-mapped I/O
-            self::$connection->exec('PRAGMA page_size = 4096');       // Tamaño de página óptimo
-            self::$connection->exec('PRAGMA busy_timeout = 5000');     // Timeout de 5s para escrituras concurrentes
+            $this->connection->exec('PRAGMA journal_mode = WAL');     // Write-Ahead Logging
+            $this->connection->exec('PRAGMA synchronous = NORMAL');   // Balance entre velocidad y seguridad
+            $this->connection->exec('PRAGMA cache_size = -64000');   // 64MB de caché en RAM
+            $this->connection->exec('PRAGMA temp_store = MEMORY');    // Tablas temporales en RAM
+            $this->connection->exec('PRAGMA mmap_size = 30000000');   // Memory-mapped I/O
+            $this->connection->exec('PRAGMA page_size = 4096');       // Tamaño de página óptimo
+            $this->connection->exec('PRAGMA busy_timeout = 5000');     // Timeout de 5s para escrituras concurrentes
 
-            return self::$connection;
+            return $this->connection;
         } catch (PDOException $e) {
             throw new Exception("Error de conexión a la base de datos: " . $e->getMessage());
         }
@@ -42,9 +43,9 @@ class Db
     /**
      * Prepara y ejecuta una sentencia SQL
      */
-    public static function exec(string $sql, ?array $params = null)
+    public function exec(string $sql, ?array $params = null)
     {
-        $stmt = self::connect()->prepare($sql);
+        $stmt = $this->connect()->prepare($sql);
         $stmt->execute($params ?? []);
         return $stmt;
     }
@@ -52,17 +53,17 @@ class Db
     /**
      * Retorna todos los registros que coincidan con la consulta
      */
-    public static function findAll(string $sql, ?array $params = null): array
+    public function findAll(string $sql, ?array $params = null): array
     {
-        return self::exec($sql, $params)->fetchAll();
+        return $this->exec($sql, $params)->fetchAll();
     }
 
     /**
      * Retorna únicamente el primer registro o null
      */
-    public static function findFirst(string $sql, ?array $params = null): ?array
+    public function findFirst(string $sql, ?array $params = null): ?array
     {
-        $stmt = self::exec($sql, $params);
+        $stmt = $this->exec($sql, $params);
         $row = $stmt->fetch();
         return $row ?: null;
     }
@@ -70,9 +71,9 @@ class Db
     /**
      * Obtiene un único valor escalar (ej: un COUNT(*))
      */
-    public static function getScalar(string $sql, ?array $params = null): mixed
+    public function getScalar(string $sql, ?array $params = null): mixed
     {
-        $stmt = self::exec($sql, $params);
+        $stmt = $this->exec($sql, $params);
         $result = $stmt->fetch(PDO::FETCH_NUM);
         return $result ? $result[0] : null;
     }
@@ -80,20 +81,20 @@ class Db
     /**
      * Inserta un registro a partir de un array asociativo y retorna el ID insertado
      */
-    public static function insert(string $table, array $data): string
+    public function insert(string $table, array $data): string
     {
         $keys = implode(', ', array_keys($data));
         $placeholders = implode(', ', array_map(fn($k) => ':' . $k, array_keys($data)));
         $sql = "INSERT INTO {$table} ({$keys}) VALUES ({$placeholders})";
 
-        self::exec($sql, $data);
-        return self::connect()->lastInsertId();
+        $this->exec($sql, $data);
+        return $this->connect()->lastInsertId();
     }
 
     /**
      * Actualiza registros en la tabla
      */
-    public static function update(string $table, array $data, string $condition, ?array $params = null): int
+    public function update(string $table, array $data, string $condition, ?array $params = null): int
     {
         if (empty(trim($condition))) {
             throw new Exception("Se requiere una condición WHERE para evitar actualizaciones accidentales masivas.");
@@ -105,14 +106,14 @@ class Db
         // Combinar datos a actualizar con los parámetros del WHERE si los hay
         $mergedParams = array_merge($data, $params ?? []);
 
-        $stmt = self::exec($sql, $mergedParams);
+        $stmt = $this->exec($sql, $mergedParams);
         return $stmt->rowCount();
     }
 
     /**
      * Elimina registros de la tabla
      */
-    public static function delete(string $table, string $condition, ?array $params = null): int
+    public function delete(string $table, string $condition, ?array $params = null): int
     {
         if (empty(trim($condition))) {
             throw new Exception("Se requiere una condición WHERE para evitar eliminaciones accidentales masivas.");
@@ -120,31 +121,31 @@ class Db
 
         $sql = "DELETE FROM {$table} {$condition}";
 
-        $stmt = self::exec($sql, $params);
+        $stmt = $this->exec($sql, $params);
         return $stmt->rowCount();
     }
 
     /**
      * Inicia una transacción
      */
-    public static function beginTransaction(): void
+    public function beginTransaction(): void
     {
-        self::connect()->beginTransaction();
+        $this->connect()->beginTransaction();
     }
 
     /**
      * Confirma la transacción
      */
-    public static function commit(): void
+    public function commit(): void
     {
-        self::connect()->commit();
+        $this->connect()->commit();
     }
 
     /**
      * Revierte la transacción
      */
-    public static function rollback(): void
+    public function rollback(): void
     {
-        self::connect()->rollback();
+        $this->connect()->rollback();
     }
 }
