@@ -44,9 +44,20 @@ if (is_dir($modules_dir)) {
     $module_files = get_php_files($modules_dir);
 }
 
+// Agregar templates y partials al escaneo de vistas
+$shared_dir = ROOT_PATH . 'shared';
+if (is_dir($shared_dir . '/templates')) {
+    $module_files = array_merge($module_files, get_php_files($shared_dir . '/templates'));
+}
+if (is_dir($shared_dir . '/partials')) {
+    $module_files = array_merge($module_files, get_php_files($shared_dir . '/partials'));
+}
+
 foreach ($module_files as $file) {
     $relative_path = str_replace(ROOT_PATH, '', $file);
-    $is_view = str_contains($relative_path, '/views/');
+    $is_view = str_contains($relative_path, '/views/') || 
+               str_contains($relative_path, 'shared/templates/') || 
+               str_contains($relative_path, 'shared/partials/');
     $content = file_get_contents($file);
     
     $file_issues = [];
@@ -60,7 +71,7 @@ foreach ($module_files as $file) {
     }
     
     // 2. Ni Handlers ni Vistas pueden instanciar clases con 'new' manualmente
-    $instantiation_issues = check_manual_instantiation($content);
+    $instantiation_issues = check_manual_instantiation($content, $is_view);
     if (!empty($instantiation_issues)) {
         $file_issues = array_merge($file_issues, $instantiation_issues);
     }
@@ -278,9 +289,10 @@ function check_cqrs_pattern(string $filename, string $content): array
 }
 
 /**
- * Revisa que no se utilicen instanciaciones manuales usando 'new' (excepto excepciones/datetime/stdclass)
+ * Revisa que no se utilicen instanciaciones manuales usando 'new'.
+ * En las vistas ($strict_ban = true), está prohibido al 100%.
  */
-function check_manual_instantiation(string $content): array
+function check_manual_instantiation(string $content, bool $strict_ban = false): array
 {
     $issues = [];
     $tokens = token_get_all($content);
@@ -304,7 +316,12 @@ function check_manual_instantiation(string $content): array
                 }
             }
             
-            // Permitir excepciones, errores y objetos de utilidad nativos comunes
+            if ($strict_ban) {
+                $issues[] = "Instanciación manual prohibida en Vistas ('new " . ($className ?: '') . "'). Las vistas sólo deben recibir y renderizar datos pasados por el controlador.";
+                continue;
+            }
+            
+            // Permitir excepciones, errores y objetos de utilidad nativos comunes en Handlers
             if (preg_match('/(Exception|Error)$/i', $className) || 
                 in_array(strtolower($className), ['datetime', 'datetimeimmutable', 'stdclass'])) {
                 continue;

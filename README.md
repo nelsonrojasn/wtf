@@ -75,6 +75,8 @@ El diseño del proyecto es modular y fácil de navegar:
 │   ├── routes.php       # Registro y definición de rutas URL
 │   └── settings.php     # Ajustes de PHP, zonas horarias y rutas base
 ├── core/                # El motor del framework (DB Singleton, Cookies encriptadas, etc.)
+│   ├── interfaces/      # Interfaces comunes del framework
+│   │   └── HandlerInterface.php
 │   ├── bootstrap.php    # Autocarga de clases, utilidades HTTP y helpers de renderizado
 │   ├── Container.php    # Contenedor de Inyección de Dependencias con Autowiring
 │   ├── Db.php           # Servicio PDO para SQLite3 con optimizaciones agresivas
@@ -82,7 +84,7 @@ El diseño del proyecto es modular y fácil de navegar:
 │   └── Response.php     # Clase que encapsula respuestas HTTP (cuerpo, cabeceras, estado)
 ├── modules/             # Lógica de negocio y vistas organizadas por módulos
 │   └── home/            # Módulo de la página de inicio
-│       ├── HomeHandler.php # Controlador del módulo
+│       ├── HomeHandler.php # Controlador del módulo (implementa HandlerInterface)
 │       └── views/
 │           └── index.php   # Plantilla HTML/PHP para la vista del módulo
 ├── public/              # Directorio público (única raíz expuesta a la web)
@@ -90,7 +92,8 @@ El diseño del proyecto es modular y fácil de navegar:
 │   └── index.php        # Controlador frontal y bucle de peticiones de FrankenPHP
 ├── shared/              # Recursos compartidos entre diferentes módulos
 │   ├── filters/         # Filtros de ruta (Middlewares globales/específicos)
-│   └── models/          # Modelos compartidos (cargados automáticamente)
+│   ├── models/          # Modelos compartidos (cargados automáticamente)
+│   └── templates/       # Templates HTML globales (default.php, etc.)
 ├── Caddyfile            # Configuración de servidor web para FrankenPHP
 └── README.md            # Este manual de experiencia de desarrollador
 ```
