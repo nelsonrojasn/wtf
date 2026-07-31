@@ -31,6 +31,23 @@ frankenphp run --config Caddyfile
 ```
 *La aplicación estará disponible de inmediato en [http://localhost:8080](http://localhost:8080).*
 
+### 💻 Herramientas de Consola (CLI)
+
+El framework incluye herramientas de terminal autoejecutables para mejorar el flujo de desarrollo:
+
+* **Listar Rutas**: Muestra una tabla ASCII coloreada con todas las rutas registradas y sus filtros.
+  ```bash
+  ./bin/console
+  ```
+* **Andamiaje (Scaffold)**: Lee un archivo CSV y genera automáticamente las carpetas de módulos, Handlers (starters) y Vistas correspondientes, además de registrar las rutas en `config/routes.php`.
+  ```bash
+  ./bin/scaffold routes.csv
+  ```
+* **Verificador de URLs (Pinger)**: Realiza pruebas automáticas de HTTP request sobre tus endpoints leyendo configuraciones y códigos de estado esperados desde un archivo CSV.
+  ```bash
+  ./bin/pinger pruebas.csv http://localhost:8080
+  ```
+
 ---
 
 ## 📂 Estructura del Proyecto
@@ -38,6 +55,13 @@ frankenphp run --config Caddyfile
 El diseño del proyecto es modular y fácil de navegar:
 
 ```text
+├── bin/                 # Herramientas de consola CLI
+│   ├── console          # Ejecutable para listar rutas
+│   ├── console.php      # Script principal de listado de rutas
+│   ├── pinger           # Ejecutable para validar endpoints
+│   ├── pinger.php       # Script principal del verificador de URLs (pinger)
+│   ├── scaffold         # Ejecutable para andamiaje
+│   └── scaffold.php     # Script principal de andamiaje de módulos y vistas
 ├── config/              # Configuración global del sistema
 │   ├── database.php     # Configuración de base de datos
 │   ├── routes.php       # Registro y definición de rutas URL
