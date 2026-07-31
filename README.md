@@ -1,0 +1,267 @@
+# ⚡ WTF Framework
+
+**WTF** es un micro-framework de PHP ultraliviano y de alto rendimiento, diseñado para desarrolladores que valoran la simplicidad, la arquitectura limpia y los despliegues modernos. Cuenta con soporte nativo para el **Modo Worker de FrankenPHP** y una integración optimizada con SQLite3.
+
+Sin dependencias pesadas ni la sobrecarga de Composer. Solo PHP puro, limpio y extremadamente rápido.
+
+---
+
+## 🛠️ Inicio Rápido
+
+Ejecuta tu entorno de desarrollo en segundos.
+
+### Requisitos Previos
+- PHP 8.1 o superior (con las extensiones `pdo_sqlite` y `openssl` activas)
+- [Caddy](https://caddyserver.com/) con el plugin de FrankenPHP (opcional, pero recomendado para producción)
+
+### Servidor de Desarrollo Local (Tradicional)
+
+Si deseas ejecutar la aplicación de forma rápida con el servidor de desarrollo integrado de PHP:
+
+```bash
+php -S localhost:8080 -t public
+```
+
+### Ejecutar con FrankenPHP (Modo Worker)
+
+Si tienes FrankenPHP instalado localmente, puedes aprovechar la ejecución persistente (Worker Mode) para máximo rendimiento:
+
+```bash
+frankenphp run --config Caddyfile
+```
+*La aplicación estará disponible de inmediato en [http://localhost:8080](http://localhost:8080).*
+
+---
+
+## 📂 Estructura del Proyecto
+
+El diseño del proyecto es modular y fácil de navegar:
+
+```text
+├── config/              # Configuración global del sistema
+│   ├── database.php     # Configuración de base de datos
+│   ├── routes.php       # Registro y definición de rutas URL
+│   └── settings.php     # Ajustes de PHP, zonas horarias y rutas base
+├── core/                # El motor del framework (DB Singleton, Cookies encriptadas, etc.)
+│   ├── bootstrap.php    # Autocarga de clases, utilidades HTTP y helpers de renderizado
+│   ├── Db.php           # Envoltorio PDO para SQLite3 con optimizaciones agresivas
+│   └── EncryptedCookie.php # Gestor de cookies seguras y encriptadas (AES-256-GCM)
+├── modules/             # Lógica de negocio y vistas organizadas por módulos
+│   └── home/            # Módulo de la página de inicio
+│       ├── HomeHandler.php # Controlador del módulo
+│       └── views/
+│           └── index.php   # Plantilla HTML/PHP para la vista del módulo
+├── public/              # Directorio público (única raíz expuesta a la web)
+│   ├── .htaccess        # Reglas de reescritura para Apache
+│   └── index.php        # Controlador frontal y bucle de peticiones de FrankenPHP
+├── shared/              # Recursos compartidos entre diferentes módulos
+│   ├── filters/         # Filtros de ruta (Middlewares globales/específicos)
+│   └── models/          # Modelos compartidos (cargados automáticamente)
+├── Caddyfile            # Configuración de servidor web para FrankenPHP
+└── README.md            # Este manual de experiencia de desarrollador
+```
+
+---
+
+## 🔄 Flujo de una Petición (Request Lifecycle)
+
+Visualización de cómo viaja una petición HTTP a través del framework:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Cliente as Navegador / Cliente
+    participant Index as public/index.php
+    participant Routes as config/routes.php
+    participant Filters as shared/filters/*
+    participant Handler as modules/*/*Handler.php
+    participant DB as core/Db.php
+    participant View as modules/*/views/*
+
+    Cliente->>Index: Petición HTTP
+    activate Index
+    Note over Index: Determina URI y Método HTTP
+    Index->>Routes: ¿Existe la ruta definida?
+    Routes-->>Index: Sí (Retorna módulo, handler y filtros)
+    
+    loop Para cada Filtro registrado en la ruta
+        Index->>Filters: Ejecuta filtro($request)
+        alt El filtro retorna false (Ej: no autenticado)
+            Filters-->>Cliente: Envía respuesta corta (Ej: 401 JSON)
+            Note over Index: Detiene la ejecución
+        end
+    end
+    
+    Index->>Handler: Instancia y ejecuta handle($request)
+    activate Handler
+    
+    opt Operaciones de Base de Datos
+        Handler->>DB: Db::findAll() / Db::findFirst()
+        DB-->>Handler: Registros / Datos
+    end
+    
+    Handler->>View: view("modulo/views/vista", $data)
+    activate View
+    View-->>Handler: HTML compilado
+    deactivate View
+    
+    Handler-->>Index: Finaliza ejecución del Handler
+    deactivate Handler
+    
+    Index-->>Cliente: Envía respuesta al cliente + Cabecera X-Response-Time
+    deactivate Index
+```
+
+---
+
+## ⚙️ Guía de Desarrollo: Cómo hacer cosas comunes
+
+### 1. Registrar una nueva ruta
+
+Las rutas se definen como un arreglo asociativo en [config/routes.php](./config/routes.php):
+
+```php
+return [
+    '/' => [
+        'module' => 'home',
+        'starter' => 'HomeHandler',
+        'filters' => [],
+        'description' => 'Página de Inicio'
+    ],
+    '/dashboard' => [
+        'module' => 'dashboard',
+        'starter' => 'DashboardHandler',
+        'filters' => ['auth'], // Aplica el filtro shared/filters/auth.php
+        'description' => 'Panel de control seguro'
+    ],
+];
+```
+
+### 2. Crear un Handler (Controlador)
+
+Cada ruta mapea a una clase "starter" ubicada en `modules/{nombre_modulo}/{NombreHandler}.php`. Debe tener un método `handle(array $request)`.
+
+Ejemplo de `DashboardHandler.php`:
+
+```php
+<?php
+
+class DashboardHandler {
+    public function handle(array $request): void
+    {
+        // $request contiene: method, path, headers, query, body, params, start_time
+        
+        $data = [
+            'titulo' => 'Mi Tablero de Control',
+            'usuario' => ['nombre' => 'Nelson']
+        ];
+        
+        view("dashboard/views/index", $data);
+    }
+}
+```
+
+### 3. Crear y aplicar Filtros (Middlewares)
+
+Los filtros se ejecutan antes del handler. Si retornan `false`, abortan la petición. Se guardan en `shared/filters/{nombre_filtro}.php` y la función declarada dentro debe tener el mismo nombre que el archivo.
+
+Ejemplo en [shared/filters/auth.php](file:///Users/nelson/projects/wtf/shared/filters/auth.php):
+
+```php
+<?php
+
+function auth(array $request): bool {
+    $session = EncryptedCookie::get('wtf_session');
+    
+    if (!$session) {
+        http_response_code(401);
+        json(['error' => 'No autorizado'], 401);
+        return false; // Interrumpe el flujo
+    }
+
+    return true; // Continúa al handler
+}
+```
+
+### 4. Consultas a la Base de Datos (`Db` Helper)
+
+La clase estática [core/Db.php](file:///Users/nelson/projects/wtf/core/Db.php) expone un envoltorio PDO optimizado para SQLite3.
+
+```php
+// 1. Obtener múltiples registros
+$usuarios = Db::findAll("SELECT * FROM users WHERE active = :active", ['active' => 1]);
+
+// 2. Obtener un único registro (retorna array asociativo o null)
+$usuario = Db::findFirst("SELECT * FROM users WHERE id = :id", ['id' => 12]);
+
+// 3. Insertar un registro (retorna el ID de la fila insertada)
+$nuevoId = Db::insert("users", [
+    'name' => 'Nelson Rojas',
+    'email' => 'nelson@example.com',
+    'created_at' => date('Y-m-d H:i:s')
+]);
+
+// 4. Actualizar registros (requiere condición WHERE para evitar updates masivos accidentales)
+$filasAfectadas = Db::update(
+    "users",
+    ['name' => 'Nelson R.'], // Datos a cambiar
+    "WHERE id = :id",        // Condición
+    ['id' => $nuevoId]       // Parámetros
+);
+
+// 5. Eliminar registros
+$filasEliminadas = Db::delete("users", "WHERE id = :id", ['id' => $nuevoId]);
+```
+
+### 5. Cookies Encriptadas (Seguridad)
+
+Para almacenar sesiones de usuario u otros datos sensibles del lado del cliente, se utiliza criptografía AES-256-GCM.
+
+> [!IMPORTANT]
+> Recuerda cambiar la clave secreta estática `$secret_key` en [core/EncryptedCookie.php](file:///Users/nelson/projects/wtf/core/EncryptedCookie.php) antes del despliegue a producción.
+
+```php
+// Guardar datos de sesión encriptados (expira en 24 horas, HttpOnly, SameSite=Lax)
+EncryptedCookie::set('wtf_session', [
+    'user_id' => 42,
+    'role' => 'admin'
+], 86400);
+
+// Leer cookie encriptada (valida expiración y firma; si fue alterada retorna null)
+$session = EncryptedCookie::get('wtf_session');
+if ($session) {
+    $userId = $session['user_id'];
+}
+
+// Destruir cookie de sesión
+EncryptedCookie::destroy('wtf_session');
+```
+
+### 6. Renderizado de Vistas y Escapado (Protección XSS)
+
+- Usa la función global `view()` para cargar plantillas PHP/HTML.
+- Usa el helper rápido `h()` para escapar datos generados por el usuario y mitigar ataques XSS.
+- Divide tus vistas en bloques reutilizables usando la función `partial()`.
+
+**Archivo de vista (`modules/home/views/index.php`)**:
+```html
+<header>
+    <?php partial('navbar', ['active' => 'home']); ?>
+</header>
+
+<main>
+    <!-- h() escapa de forma segura el texto -->
+    <h1>Bienvenido, <?= h($usuario['nombre']) ?>!</h1>
+</main>
+```
+
+---
+
+## ⚡ Funcionamiento en Modo Worker de FrankenPHP
+
+Cuando WTF se ejecuta bajo FrankenPHP en modo Worker, el ciclo de vida cambia drásticamente respecto al CGI/FPM tradicional para conseguir rendimientos extremos:
+
+1. **Compilación única**: PHP arranca el worker, compila todos los scripts de soporte, carga las clases comunes del autoloader y mantiene todo en la memoria RAM del proceso.
+2. **Bucle persistente**: Las peticiones HTTP entrantes son despachadas directamente a la función callback de `frankenphp_handle_request` en `public/index.php`.
+3. **Limpieza de Estado**: Al final de cada petición HTTP procesada, el framework realiza una limpieza explícita (`unset` de handlers, headers, variables locales y reseteo de superglobals como `$_GET`, `$_POST`, etc.) para evitar fugas de memoria o contaminación de datos entre diferentes usuarios.
+4. **Reciclado Automático**: Para mitigar cualquier fuga menor de memoria en tus handlers, los workers se destruyen y recrean automáticamente cada `MAX_REQUESTS` (10,000 peticiones por defecto).
