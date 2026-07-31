@@ -1,6 +1,6 @@
-# ⚡ WTF Framework
+# ⚡ WTF
 
-**WTF** es un micro-framework de PHP ultraliviano y de alto rendimiento, diseñado para desarrolladores que valoran la simplicidad, la arquitectura limpia y los despliegues modernos. Cuenta con soporte nativo para el **Modo Worker de FrankenPHP** y una integración optimizada con SQLite3.
+**WTF** (What the Framework!) es un micro-framework de PHP ultraliviano y de alto rendimiento, diseñado para desarrolladores que valoran la simplicidad, la arquitectura limpia y los despliegues modernos. Cuenta con soporte nativo para el **Modo Worker de FrankenPHP** y una integración optimizada con SQLite3.
 
 Sin dependencias pesadas ni la sobrecarga de Composer. Solo PHP puro, limpio y extremadamente rápido.
 
@@ -189,7 +189,7 @@ class DashboardHandler {
 
 Los filtros se ejecutan antes del handler. Si retornan `false`, abortan la petición. Se guardan en `shared/filters/{nombre_filtro}.php` y la función declarada dentro debe tener el mismo nombre que el archivo.
 
-Ejemplo en [shared/filters/auth.php](file:///Users/nelson/projects/wtf/shared/filters/auth.php):
+Ejemplo en [shared/filters/auth.php](./shared/filters/auth.php):
 
 ```php
 <?php
@@ -209,7 +209,7 @@ function auth(array $request): bool {
 
 ### 4. Consultas a la Base de Datos (`Db` Helper)
 
-La clase estática [core/Db.php](file:///Users/nelson/projects/wtf/core/Db.php) expone un envoltorio PDO optimizado para SQLite3.
+La clase estática [core/Db.php](./core/Db.php) expone un envoltorio PDO optimizado para SQLite3.
 
 ```php
 // 1. Obtener múltiples registros
@@ -242,7 +242,7 @@ $filasEliminadas = Db::delete("users", "WHERE id = :id", ['id' => $nuevoId]);
 Para almacenar sesiones de usuario u otros datos sensibles del lado del cliente, se utiliza criptografía AES-256-GCM.
 
 > [!IMPORTANT]
-> Recuerda cambiar la clave secreta estática `$secret_key` en [core/EncryptedCookie.php](file:///Users/nelson/projects/wtf/core/EncryptedCookie.php) antes del despliegue a producción.
+> Recuerda cambiar la clave secreta estática `$secret_key` en [core/EncryptedCookie.php](./core/EncryptedCookie.php) antes del despliegue a producción.
 
 ```php
 // Guardar datos de sesión encriptados (expira en 24 horas, HttpOnly, SameSite=Lax)
