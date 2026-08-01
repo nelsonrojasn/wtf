@@ -341,6 +341,14 @@ EncryptedCookie::destroy('wtf_session');
 
 ---
 
+## 📖 Tutorial de Aprendizaje
+
+Para desarrolladores recién iniciados que deseen ver un caso práctico y completo que utilice todas las herramientas del framework, se ha creado el siguiente tutorial:
+
+* **[Tutorial: Pizarra de Anuncios Comunitaria](/home/nelson/.gemini/antigravity-ide/brain/7ae4a6ac-4425-4e1d-a496-c098c6886a39/tutorial_pizarra_comunitaria.md)**: Una guía paso a paso donde se construye una pizarra de anuncios utilizando andamiaje, el controlador de consola, base de datos SQLite con modelos CQRS, cookies encriptadas, filtros, linter estático (Guardian) y validación de endpoints (Pinger).
+
+---
+
 ## ⚡ Funcionamiento en Modo Worker de FrankenPHP
 
 Cuando WTF se ejecuta bajo FrankenPHP en modo Worker, el ciclo de vida cambia drásticamente respecto al CGI/FPM tradicional para conseguir rendimientos extremos:
