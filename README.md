@@ -349,3 +349,9 @@ Cuando WTF se ejecuta bajo FrankenPHP en modo Worker, el ciclo de vida cambia dr
 2. **Bucle persistente**: Las peticiones HTTP entrantes son despachadas directamente a la función callback de `frankenphp_handle_request` en `public/index.php`.
 3. **Limpieza de Estado**: Al final de cada petición HTTP procesada, el framework realiza una limpieza explícita (`unset` de handlers, headers, variables locales y reseteo de superglobals como `$_GET`, `$_POST`, etc.) para evitar fugas de memoria o contaminación de datos entre diferentes usuarios.
 4. **Reciclado Automático**: Para mitigar cualquier fuga menor de memoria en tus handlers, los workers se destruyen y recrean automáticamente cada `MAX_REQUESTS` (10,000 peticiones por defecto).
+
+---
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más detalles.
