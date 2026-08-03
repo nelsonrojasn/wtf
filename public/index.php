@@ -13,6 +13,7 @@ ini_set('display_errors', 'On');
 define('ROOT_PATH', dirname(__DIR__) . '/');
 const CORE_PATH = ROOT_PATH . 'core/';
 
+require_once ROOT_PATH . 'config/settings.php';
 require_once CORE_PATH . 'bootstrap.php';
 
 // Registrar el inicio del worker para calcular el uptime en system/health

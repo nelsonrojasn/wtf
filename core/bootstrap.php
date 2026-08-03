@@ -11,7 +11,8 @@ spl_autoload_register(
             CORE_PATH,
             CORE_PATH . 'interfaces/',
             ROOT_PATH . 'shared/filters/',
-            ROOT_PATH . 'shared/models/'
+            ROOT_PATH . 'shared/models/',
+            ROOT_PATH . 'shared/services/fsp/'
         ];
 
         foreach ($findOn as $f) {

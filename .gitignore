@@ -1,0 +1,16 @@
+# Bases de datos de SQLite
+*.sqlite
+*.sqlite3
+data/*.sqlite
+data/*.sqlite3
+
+# Archivos de sistema de macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+**/.DS_Store
+**/._*

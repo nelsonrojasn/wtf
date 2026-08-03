@@ -9,4 +9,10 @@ return [
 		'filters' => [],
 		'description' => 'Home Page'
 	],
+	'/users' => [
+		'module' => 'users',
+		'starter' => 'UsersHandler',
+		'filters' => [],
+		'description' => 'Lista de Usuarios'
+	],
 ];
