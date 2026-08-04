@@ -1,5 +1,5 @@
 <?php
-// bin/console.php
+// bin/routes.php
 // Define path constants so config files load correctly
 if (!defined('ROOT_PATH')) {
     define('ROOT_PATH', dirname(__DIR__) . '/');

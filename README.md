@@ -38,7 +38,7 @@ El framework incluye herramientas de terminal autoejecutables para mejorar el fl
 
 * **Listar Rutas**: Muestra una tabla ASCII coloreada con todas las rutas registradas y sus filtros.
   ```bash
-  ./bin/console
+  ./bin/routes
   ```
 * **Andamiaje (Scaffold)**: Lee un archivo CSV y genera automáticamente las carpetas de módulos, Handlers (starters) y Vistas correspondientes, además de registrar las rutas en `config/routes.php`.
   ```bash

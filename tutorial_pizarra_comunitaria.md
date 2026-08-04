@@ -51,12 +51,12 @@ A continuación, ejecuta el comando de andamiaje:
 
 ---
 
-## Paso 2: Listar Rutas Registradas con `./bin/console`
+## Paso 2: Listar Rutas Registradas con `./bin/routes`
 
 Una vez que hayas ejecutado el scaffolding, puedes verificar que todas tus rutas estén correctamente configuradas y mapeadas usando el visualizador de la consola de WTF:
 
 ```bash
-./bin/console
+./bin/routes
 ```
 
 Este comando imprimirá una tabla coloreada en tu terminal mostrando:

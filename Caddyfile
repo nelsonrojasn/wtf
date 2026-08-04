@@ -1,18 +1,18 @@
 {
-    # Bloque de Opciones Globales (Único)
     admin off
 
     frankenphp {
-        # Como usas public/index.php, ajustamos el worker a esa ruta
+        # Mantiene el script cargado en memoria
         worker public/index.php 4
     }
 }
 
 http://:8080 {
     root * public
-    php_server
 
     # Bloquear acceso a archivos sensibles
     @blocked path *.sqlite *.db /tests/*
     respond @blocked "Access Denied" 403
+
+    php_server
 }
