@@ -3,6 +3,7 @@
 *.sqlite3
 data/*.sqlite
 data/*.sqlite3
+data/app*.sqlite*
 
 # Archivos de sistema de macOS
 .DS_Store
