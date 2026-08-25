@@ -6,13 +6,24 @@ build:
   dependencies:
     override: true
 
-# Desactiva las herramientas externas que Scrutinizer intenta auto-instalar
+  nodes:
+    analysis:
+      tests:
+        override:
+          - true # Salta la etapa de ejecución de herramientas globales
+
+# Anula la ejecución de herramientas a nivel de inspección
 tools:
-  php_code_sniffer: false
-  php_loc: false
-  php_cpd: false
-  php_cs_fixer: false
-  sensiolabs_security_checker: false
+  php_code_sniffer:
+    enabled: false
+  php_mess_detector:
+    enabled: false
+  php_cs_fixer:
+    enabled: false
+  php_loc:
+    enabled: false
+  sensiolabs_security_checker:
+    enabled: false
 
 checks:
   php:
