@@ -4,12 +4,20 @@ build:
       version: 8.2
 
   dependencies:
-    override: true # Omite 'composer install'
+    override: true
+
+# Desactiva las herramientas externas que Scrutinizer intenta auto-instalar
+tools:
+  php_code_sniffer: false
+  php_loc: false
+  php_cpd: false
+  php_cs_fixer: false
+  sensiolabs_security_checker: false
 
 checks:
   php:
     code_rating: true
-    duplication: true # Nombre correcto para la detección de código duplicado
+    duplication: true
     variable_existence: true
     unused_variables: true
     unused_methods: true
