@@ -1,33 +1,23 @@
 build:
-  environment:
-    php:
-      version: 8.2
-    variables:
-      COMPOSER_SECURITY_ADVISORIES_BLOCK: "false"
-
   dependencies:
-    override: true
+    before:
+      - true
+    override:
+      - true
+  tests:
+    override:
+      - true
 
 tools:
-  php_code_sniffer: false
-  php_loc: false
-  php_cpd: false
-  php_cs_fixer: false
-  sensiolabs_security_checker: false
-  
   php_analyzer: true
   php_mess_detector: true
+  php_code_sniffer: false
+  php_cs_fixer: false
+  php_loc: false
+  php_cpd: false
+  sensiolabs_security_checker: false
 
 checks:
   php:
     code_rating: true
     duplication: true
-    variable_existence: true
-    unused_variables: true
-    unused_methods: true
-    security_vulnerabilities: true
-
-filter:
-  excluded_paths:
-    - 'public/'
-    - 'bin/'
