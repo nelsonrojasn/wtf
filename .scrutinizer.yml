@@ -1,0 +1,19 @@
+build:
+  environment:
+    php:
+      version: 8.4 # o la versión de PHP que prefieras (8.1+)
+
+  # Desactiva la instalación automática de Composer
+  dependencies:
+    override: true # Evita que Scrutinizer intente correr 'composer install'
+
+checks:
+  php:
+    # Habilita el análisis estático nativo de Scrutinizer sin requerir herramientas externas
+    code_rating: true
+    duplicate_code: true
+
+filter:
+  excluded_paths:
+    - 'public/'
+    - 'bin/'
