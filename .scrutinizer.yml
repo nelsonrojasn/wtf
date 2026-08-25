@@ -9,7 +9,6 @@ build:
     override: true
 
 tools:
-  external_code_sniffer: false
   php_code_sniffer: false
   php_loc: false
   php_cpd: false
